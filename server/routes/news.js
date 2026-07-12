@@ -5,6 +5,7 @@ const db = require('../db');
 const cache = require('../cache');
 const { JSDOM } = require('jsdom');
 const { Readability } = require('@mozilla/readability');
+const { marked } = require('marked');
 
 // Homepage: news feed + daily tools data
 router.get('/', async (req, res) => {
@@ -100,14 +101,40 @@ router.post('/api/read-article', async (req, res) => {
     res.json({ title: article.title, content: article.textContent, htmlContent: article.content });
   } catch (error) {
     console.error('Readability Error for', url, ':', error.message);
-    res.json({ 
-      title: 'Erişim Koruması', 
-      content: 'Bu site güvenlik nedeniyle otomatik okumayı engelledi.',
-      htmlContent: `<div style="text-align:center; padding: 20px; border: 1px dashed #808080; margin-top: 10px;">
-        <p style="margin-bottom:15px; font-family:'JetBrains Mono', monospace; font-size:12px;">🚫 Bu haber sitesi otomatik sistemleri (botları) engellediği için metni buraya çekemedik.</p>
-        <a href="${url}" target="_blank" class="btn-nav" style="text-decoration:none; padding: 4px 12px; display:inline-block;">👉 Orijinal Kaynağa Git</a>
-      </div>` 
-    });
+    console.log('Attempting Jina AI fallback...');
+    
+    try {
+      const jinaResponse = await fetch('https://r.jina.ai/' + url, {
+        headers: {
+          'Accept': 'text/plain',
+          'X-Return-Format': 'markdown'
+        }
+      });
+      
+      if (!jinaResponse.ok) throw new Error('Jina fetch failed');
+      const jinaText = await jinaResponse.text();
+      
+      if (jinaText.includes('Title: Just a moment') || jinaText.includes('Attention Required!')) {
+         throw new Error('Jina also blocked by Cloudflare');
+      }
+
+      let parsedTitle = 'Makale Okuyucu (AI)';
+      const titleMatch = jinaText.match(/Title:\s*(.+)/);
+      if (titleMatch) parsedTitle = titleMatch[1];
+      
+      const htmlContent = marked.parse(jinaText);
+      res.json({ title: parsedTitle + ' 🤖', content: jinaText.substring(0, 300), htmlContent });
+    } catch (jinaError) {
+      console.error('Jina AI fallback failed:', jinaError.message);
+      res.json({ 
+        title: 'Erişim Koruması', 
+        content: 'Bu site güvenlik nedeniyle otomatik okumayı engelledi.',
+        htmlContent: `<div style="text-align:center; padding: 20px; border: 1px dashed #808080; margin-top: 10px;">
+          <p style="margin-bottom:15px; font-family:'JetBrains Mono', monospace; font-size:12px;">🚫 Bu haber sitesi sistemleri (botları) engellediği için Jina AI bile metni buraya çekemedi.</p>
+          <a href="${url}" target="_blank" class="btn-nav" style="text-decoration:none; padding: 4px 12px; display:inline-block;">👉 Orijinal Kaynağa Git</a>
+        </div>` 
+      });
+    }
   }
 });
 

@@ -135,7 +135,21 @@
 
     <!-- NETWORK_FEED::LATEST_UPDATES -->
     <div class="container-flat">
-      <div class="window-header"><%= t.news.title %></div>
+      <div class="window-header">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span><%= t.news.title %></span>
+          <% if (news && news.length > 0) { 
+             const sources = [...new Set(news.map(n => n.source))].sort();
+          %>
+          <select id="news-source-filter" style="font-size:10px; background:#e0e0e0; border:2px inset #fff; outline:none; max-width:150px; color:#000;">
+            <option value="all">Tüm Kaynaklar</option>
+            <% sources.forEach(s => { %>
+              <option value="<%= s %>"><%= s %></option>
+            <% }); %>
+          </select>
+          <% } %>
+        </div>
+      </div>
       
       <!-- ARTICLE READER CONTAINER -->
       <div id="article-reader" style="display:none; margin:8px; background:#fff; color:#000; padding:10px; border:2px solid; border-color:#808080 #fff #fff #808080;">
@@ -154,7 +168,7 @@
         <% } else { %>
           <div class="news-list" id="main-news-list">
             <% news.forEach(function(item, idx) { %>
-              <article class="news-item" style="<%= idx >= 20 ? 'display:none;' : '' %>">
+              <article class="news-item" data-source="<%= item.source %>" style="<%= idx >= 20 ? 'display:none;' : '' %>">
                 <div class="news-title">
                   <a href="#" class="read-article-btn" data-url="<%= item.link %>" title="<%= item.title %>"><%= item.title %></a>
                   <button class="btn-outset tldr-btn" style="font-size:9px; padding:0 4px;" data-text="<%= Buffer.from((item.snippet || item.title)).toString('base64') %>"><%= lang === 'tr' ? '[Özetle]' : '[Summarize]' %></button>
@@ -169,19 +183,48 @@
         <% } %>
       </div>
       <% if (news && news.length > 0) { %>
-        <div class="news-footer">
-          <span><%= t.news.showing %> <%= Math.min(20, news.length) %> of <%= news.length %> items</span>
-          <% if (news.length > 20) { %>
-            <button class="btn-outset" id="btn-more-news"><%= t.news.moreUpdates %></button>
-          <% } %>
+        <div class="news-footer" style="display:flex; justify-content:space-between; align-items:center; padding: 4px;">
+          <span id="news-count-text"><%= t.news.showing %> <%= Math.min(20, news.length) %> of <%= news.length %> items</span>
+          <button class="btn-outset" id="btn-more-news"><%= t.news.moreUpdates %></button>
         </div>
         <script>
           const btnMoreNews = document.getElementById('btn-more-news');
+          const sourceFilter = document.getElementById('news-source-filter');
+          const allNewsItems = document.querySelectorAll('#main-news-list .news-item');
+          
           if (btnMoreNews) {
             btnMoreNews.addEventListener('click', function() {
-              document.querySelectorAll('#main-news-list .news-item').forEach(el => el.style.display = 'block');
+              const selectedSource = sourceFilter ? sourceFilter.value : 'all';
+              let visibleCount = 0;
+              allNewsItems.forEach(el => {
+                if (selectedSource === 'all' || el.getAttribute('data-source') === selectedSource) {
+                  el.style.display = 'block';
+                  visibleCount++;
+                }
+              });
               this.style.display = 'none';
-              this.previousElementSibling.textContent = "<%= t.news.showing %> <%= news.length %> of <%= news.length %> items";
+              document.getElementById('news-count-text').textContent = "Showing " + visibleCount + " items";
+            });
+          }
+
+          if (sourceFilter) {
+            sourceFilter.addEventListener('change', function() {
+              const selectedSource = this.value;
+              let count = 0;
+              allNewsItems.forEach(el => {
+                const isMatch = selectedSource === 'all' || el.getAttribute('data-source') === selectedSource;
+                if (isMatch && count < 20) {
+                  el.style.display = 'block';
+                  count++;
+                } else {
+                  el.style.display = 'none';
+                }
+              });
+              
+              if (btnMoreNews) {
+                 btnMoreNews.style.display = count >= 20 ? 'block' : 'none';
+              }
+              document.getElementById('news-count-text').textContent = "Showing " + count + " items";
             });
           }
         </script>
