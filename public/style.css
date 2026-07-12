@@ -1011,3 +1011,64 @@ body.theme-dark .calendar-grid .day.today {
 .theme-dark .quote-container {
   border-color: #555;
 }
+
+/* --- Mobile Responsive (Max 768px) --- */
+@media (max-width: 768px) {
+  .app-nav {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 8px;
+  }
+  .nav-brand {
+    justify-content: center;
+    margin-bottom: 4px;
+  }
+  .nav-tabs {
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-left: 0;
+    gap: 6px;
+  }
+  .nav-tabs a {
+    padding: 6px 14px;
+    font-size: 14px;
+  }
+  .nav-controls {
+    justify-content: center;
+    margin-top: 4px;
+  }
+  .sys-status-bar {
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+    padding: 6px;
+  }
+  .status-left, .status-right {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .main-grid {
+    grid-template-columns: 1fr;
+  }
+  .video-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .chat-layout {
+    grid-template-columns: 1fr;
+  }
+  .sub-header {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+    padding: 8px;
+  }
+  .btn-outset, .btn-nav {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
+}
