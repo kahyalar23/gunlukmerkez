@@ -71,11 +71,13 @@ router.post('/api/read-article', async (req, res) => {
   try {
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'tr-TR,tr;q=0.8,en-US;q=0.5,en;q=0.3'
       }
     });
     
-    if (!response.ok) throw new Error('Failed to fetch article');
+    if (!response.ok) throw new Error('Failed to fetch article: ' + response.status);
     
     const html = await response.text();
     const doc = new JSDOM(html, { url });
@@ -86,8 +88,15 @@ router.post('/api/read-article', async (req, res) => {
     
     res.json({ title: article.title, content: article.textContent, htmlContent: article.content });
   } catch (error) {
-    console.error('Readability Error:', error.message);
-    res.status(500).json({ error: 'Makale yüklenemedi.' });
+    console.error('Readability Error for', url, ':', error.message);
+    res.json({ 
+      title: 'Erişim Koruması', 
+      content: 'Bu site güvenlik nedeniyle otomatik okumayı engelledi.',
+      htmlContent: `<div style="text-align:center; padding: 20px; border: 1px dashed #808080; margin-top: 10px;">
+        <p style="margin-bottom:15px; font-family:'JetBrains Mono', monospace; font-size:12px;">🚫 Bu haber sitesi otomatik sistemleri (botları) engellediği için metni buraya çekemedik.</p>
+        <a href="${url}" target="_blank" class="btn-nav" style="text-decoration:none; padding: 4px 12px; display:inline-block;">👉 Orijinal Kaynağa Git</a>
+      </div>` 
+    });
   }
 });
 

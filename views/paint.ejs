@@ -32,17 +32,13 @@
   let lastX = 0;
   let lastY = 0;
 
-  // Adapt to dark mode
+  // Always draw with black ink, erase with white (CSS filter will invert this in dark mode)
   function getStrokeColor() {
-    if (currentTool === 'eraser') {
-      return document.body.classList.contains('theme-dark') ? '#000' : '#fff';
-    }
-    return document.body.classList.contains('theme-dark') ? '#ffffff' : '#000000';
+    return currentTool === 'eraser' ? '#ffffff' : '#000000';
   }
 
   function setInitialBackground() {
-    // Fill with default color so saving to JPG/Base64 preserves background
-    ctx.fillStyle = document.body.classList.contains('theme-dark') ? '#000' : '#fff';
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
   

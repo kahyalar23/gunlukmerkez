@@ -8,6 +8,7 @@
     "dev": "node --watch server/index.js"
   },
   "dependencies": {
+    "@distube/ytdl-core": "^4.16.12",
     "@google/genai": "^1.0.0",
     "@libsql/client": "^0.17.4",
     "@mozilla/readability": "^0.6.0",

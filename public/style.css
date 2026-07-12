@@ -947,6 +947,9 @@ body.theme-dark .calendar-grid .day.today {
   background: #333;
   color: #0f0;
 }
+body.theme-dark #paint-canvas {
+  filter: invert(1) hue-rotate(180deg);
+}
 
 /* --- API Widgets --- */
 .ticker-bar {
