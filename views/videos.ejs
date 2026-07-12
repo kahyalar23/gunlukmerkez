@@ -25,6 +25,14 @@
       <label><input type="checkbox" id="lite-mode-toggle" <%= settings.noImages === 'true' ? 'checked' : '' %>> <%= t.videos.liteMode %></label>
     </div>
 
+    <!-- VLC Fix Info -->
+    <div class="panel-inset" style="padding:8px; margin-bottom:8px; font-size:11px; background:#111; border-left:3px solid #0f0;">
+      <strong style="color:#0f0;">[VLC FIX - Reversible]</strong> Eski hata: <code>get_video_info?video_id=...</code> VLC'nin gömülü <code>youtube.lua</code>'sının ölmesi. <br>
+      Yeni: <code>/api/videos/play/ID</code> artık <code>/api/videos/stream/ID</code> içeren M3U döndürüyor. Sunucu <code>yt-dlp</code> + <code>ytdl-core</code> fallback ile direkt <code>googlevideo.com</code> URL'si çözüp VLC'ye düz MP4 olarak proxy'liyor. 
+      <br> Geri almak için: <code>videos.js</code> içinde <code>/play-direct</code> endpoint'i korunuyor. Tek satırda eskiye dönebilirsin. 
+      Detay: <a href="/api/videos/stream/<%= videos && videos[0] ? videos[0].videoId : 'test' %>?redirect=1" target="_blank" style="color:#0ff;">redirect test</a>
+    </div>
+
     <!-- Video Table -->
     <div class="container-flat">
       <% if (!videos || videos.length === 0) { %>
@@ -51,10 +59,13 @@
                 <div class="vid-tldr-content" style="display:none; font-size:11px; color:#ff0; background:#222; padding:4px; margin-top:4px; border-left:2px solid #ff0;"></div>
               </div>
               
-              <div class="video-actions" style="display:flex; gap:4px; flex-shrink:0;">
+              <div class="video-actions" style="display:flex; gap:4px; flex-shrink:0; flex-wrap:wrap; max-width:320px; justify-content:flex-end;">
                 <button class="btn-outset play-web-btn" style="font-size:11px;" data-videoid="<%= video.videoId %>"><%= t.videos.playWeb || 'Web Oynat' %></button>
                 <a href="<%= video.link %>" target="_blank" rel="noopener" class="btn-outset" style="font-size:11px; text-decoration:none;"><%= t.videos.openYoutube %></a>
-                <a href="/api/videos/play/<%= video.videoId %>" class="btn-outset" style="font-size:11px; text-decoration:none;"><%= t.videos.openVlc %></a>
+                <!-- YENİ: Proxy M3U - sunucuda yt-dlp/ytdl-core ile çözülür, VLC düz mp4 oynatır (get_video_info hatası çözümü) -->
+                <a href="/api/videos/play/<%= video.videoId %>" class="btn-outset" style="font-size:11px; text-decoration:none; background:#0a0; color:#fff;" title="REVERSIBLE FIX: Sunucu YouTube'u çözer, VLC'ye direkt mp4 verir. Eski yöntem için /play-direct kullan"><%= t.videos.openVlc %> (Fix)</a>
+                <!-- ESKİ: Direkt YouTube URL - geri alınabilirlik için korundu, VLC'nin bozuk youtube.lua'sına mahkum -->
+                <a href="/api/videos/play-direct/<%= video.videoId %>" class="btn-outset" style="font-size:9px; text-decoration:none; opacity:0.5;" title="Eski yöntem - geri alma için bırakıldı">Direct</a>
                 <button class="btn-outset vid-tldr-btn" style="font-size:11px;" data-title="<%= encodeURIComponent(video.title) %>" data-channel="<%= encodeURIComponent(video.channelName) %>">TL;DR</button>
               </div>
             </div>

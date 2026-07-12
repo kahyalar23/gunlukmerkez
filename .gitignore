@@ -4,3 +4,6 @@ data/*.sqlite
 data/*.sqlite-wal
 data/*.sqlite-shm
 uploads/
+
+# yt player dumps - gereksiz
+*-player-script.js
