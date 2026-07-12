@@ -25,9 +25,9 @@ router.get('/api/videos/play/:videoId', (req, res) => {
     return res.status(400).send('Invalid video ID');
   }
 
-  // Use dynamic host for the stream URL
-  const proxyUrl = `https://${req.get('host')}/api/videos/stream/${videoId}`;
-  const m3uContent = `#EXTM3U\n#EXTINF:-1,Video\n${proxyUrl}\n`;
+  // Use direct YouTube URL so VLC parses it locally using the user's IP
+  const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
+  const m3uContent = `#EXTM3U\n#EXTINF:-1,Video\n${youtubeUrl}\n`;
   
   res.setHeader('Content-Type', 'audio/x-mpegurl');
   res.setHeader('Content-Disposition', `attachment; filename="${videoId}.m3u"`);
