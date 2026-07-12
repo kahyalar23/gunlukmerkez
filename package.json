@@ -1,0 +1,31 @@
+{
+  "name": "gunluk-merkez",
+  "version": "1.0.0",
+  "description": "Hafif kişisel günlük merkez — Lightweight personal daily dashboard",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.0.0",
+    "@libsql/client": "^0.17.4",
+    "@mozilla/readability": "^0.6.0",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.0",
+    "ejs": "^3.1.10",
+    "express": "^4.21.0",
+    "express-rate-limit": "^7.4.0",
+    "jsdom": "^29.1.1",
+    "multer": "^1.4.5-lts.1",
+    "openai": "^6.46.0",
+    "pdf-parse": "^1.1.1",
+    "rss-parser": "^3.13.0"
+  },
+  "keywords": [
+    "dashboard",
+    "lightweight",
+    "personal"
+  ],
+  "license": "MIT"
+}

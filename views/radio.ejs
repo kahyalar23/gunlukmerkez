@@ -1,0 +1,51 @@
+<%- include('partials/header') %>
+
+<div class="main-grid" style="grid-template-columns: 1fr;">
+  <main class="col-center">
+    <div class="container-flat">
+      <div class="window-header"><%= t.radio.title %></div>
+      <div class="panel-inset" style="padding: 16px;">
+        <div style="margin-bottom:16px; text-align:center;">
+          <pre class="radio-ascii">
+   _____          _____  _____ ____  
+  |  __ \   /\   |  __ \|_   _/ __ \ 
+  | |__) | /  \  | |  | | | || |  | |
+  |  _  / / /\ \ | |  | | | || |  | |
+  | | \ \/ ____ \| |__| |_| || |__| |
+  |_|  \_\/    \_\_____/|_____\____/ 
+          </pre>
+        </div>
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead>
+            <tr style="border-bottom: 2px solid #808080; text-align: left;">
+              <th style="padding: 8px;"><%= t.radio.freq %></th>
+              <th style="padding: 8px;">İstasyon</th>
+              <th style="padding: 8px;">Tür</th>
+              <th style="padding: 8px; text-align: right;">İşlem</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (radios && radios.length > 0) { %>
+              <% radios.forEach(function(radio) { %>
+                <tr style="border-bottom: 1px dashed #d0d0d0;">
+                  <td style="padding: 8px;"><strong><%= radio.frequency %></strong></td>
+                  <td style="padding: 8px;"><%= radio.name %></td>
+                  <td style="padding: 8px;"><%= radio.type %></td>
+                  <td style="padding: 8px; text-align: right;">
+                    <a href="/api/radio/<%= radio.id %>/m3u" class="btn-outset" style="text-decoration: none; display:inline-block; font-size:11px; padding:2px 6px;"><%= t.radio.play %></a>
+                  </td>
+                </tr>
+              <% }); %>
+            <% } else { %>
+              <tr>
+                <td colspan="4" style="text-align: center; padding: 16px;"><%= t.radio.noRadios || 'Radyo bulunamadı.' %></td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<%- include('partials/footer') %>

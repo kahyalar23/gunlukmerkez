@@ -1,0 +1,60 @@
+<%- include('partials/header') %>
+
+<div class="chat-layout">
+  <!-- Main Terminal -->
+  <div>
+    <div class="container-flat">
+      <div class="window-header" style="display:flex;justify-content:space-between;align-items:center;">
+        <span><%= t.chat.title %></span>
+        <span style="font-size:10px;">[ &#9632; &#9650; X ]</span>
+      </div>
+
+      <noscript>
+        <div style="padding:12px;text-align:center;"><%= t.chat.noJs %></div>
+      </noscript>
+
+      <div class="terminal-window" id="chat-messages">
+        <div class="chat-line chat-system"><%= t.chat.welcome %></div>
+        <hr class="chat-separator">
+      </div>
+
+      <div class="chat-input-bar">
+        <!-- Model Selector -->
+        <div style="display:flex; gap:4px; margin-bottom:8px; align-items:center;">
+          <span style="font-size:11px; color:#808080;"><%= t.chat.modelSelect %></span>
+          <select id="chat-model-select" class="input-inset" style="font-size:11px; padding:0 4px; height:20px; flex:1;">
+            <option value="gemini">Gemini 3.5 Flash (Multimodal)</option>
+            <option value="glm-5.2">GLM-5.2 (NVIDIA)</option>
+            <option value="minimax-m3">Minimax M3 (NVIDIA)</option>
+            <option value="deepseek-v4-pro">Deepseek-V4-Pro (NVIDIA)</option>
+          </select>
+        </div>
+
+        <div style="display:flex; gap:4px; align-items:center;">
+          <label>
+            <input type="file" name="file" id="chat-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.mp4" style="display:none;">
+            <span class="btn-outset"><%= t.chat.uploadBtn %></span>
+          </label>
+        <span id="file-name" style="font-size:11px;color:#808080;"></span>
+        <form id="chat-form" style="display:flex;flex:1;gap:4px;">
+          <input type="text" name="message" id="chat-input" placeholder="<%= t.chat.placeholder %>" class="input-inset" style="flex:1;" autocomplete="off">
+          <button type="submit" class="btn-outset" id="chat-send"><%= t.chat.send %></button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="chat-sidebar">
+    <div class="container-flat">
+      <div class="window-header"><%= t.chat.sessionInfo %></div>
+      <div class="panel-inset" style="padding:8px;">
+        <div class="sys-info-line">ID: #<%= Math.floor(Math.random() * 999).toString().padStart(3, '0') %>-A</div>
+        <div class="sys-info-line"><%= t.statusBar.uptime %>: <span id="chat-uptime">00:00:00</span></div>
+        <div class="sys-info-line">STATUS: ACTIVE</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

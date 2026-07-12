@@ -1,0 +1,495 @@
+<%- include('partials/header') %>
+
+<div class="main-grid">
+  <!-- LEFT COLUMN -->
+  <aside class="col-left">
+
+    <!-- WEATHER.SYS -->
+    <div class="container-flat">
+      <div class="window-header"><%= t.weather.title %></div>
+      <div class="terminal-screen">
+        <% if (weather) { %>
+          <p><%= t.weather.fetching %></p>
+          <p><%= t.weather.city %>: <%= weather.city %></p>
+          <p><%= t.weather.temp %>: <%= weather.temp %>&deg;C</p>
+          <p><%= t.weather.cond %>: <span id="weather-cond"><%= lang === 'tr' ? weather.description : weather.descriptionEn %></span></p>
+          <p><%= t.weather.wind %>: <%= weather.wind %> KM/H</p>
+          <p><%= t.weather.humidity %>: <%= weather.humidity %>%</p>
+          <pre id="weather-ascii" style="font-family:monospace; color:#0f0; margin-top: 8px; font-size: 10px; line-height: 1;"></pre>
+        <% } else { %>
+          <p>> NO DATA AVAILABLE</p>
+          <p>> CHECK CONNECTION...</p>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- SUNRISE / MOON PHASE (NEW) -->
+    <div class="container-flat">
+      <div class="window-header">GÖK_CİSİMLERİ.DAT</div>
+      <div class="terminal-screen" id="astro-data" style="text-align:center;">
+        > HESAPLANIYOR...
+      </div>
+    </div>
+
+    <!-- CALENDAR -->
+    <div class="container-flat">
+      <div class="window-header"><%= t.calendar.title %></div>
+      <div class="panel-inset" style="padding:8px;">
+        <div class="calendar-title" id="calendar-title" style="display:flex; justify-content:space-between; align-items:center;">
+          <button id="cal-prev" class="btn-outset" style="padding:0 4px; font-weight:bold;">&lt;</button>
+          <span id="cal-month-text">--</span>
+          <button id="cal-next" class="btn-outset" style="padding:0 4px; font-weight:bold;">&gt;</button>
+        </div>
+        <div class="calendar-grid" id="calendar-grid">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- REMINDER.LOG -->
+    <div class="container-flat">
+      <div class="window-header"><%= t.reminders.title %></div>
+      <div class="panel-inset" style="padding:8px;">
+        <% if (!reminders || reminders.length === 0) { %>
+          <p class="empty-msg" id="reminders-empty"><%= t.reminders.empty %></p>
+        <% } else { %>
+          <ul class="reminder-list" id="reminder-list">
+            <% reminders.forEach(function(rem) { %>
+              <li class="reminder-item" data-id="<%= rem.id %>">
+                <time class="reminder-date"><%= rem.date %></time>
+                <span class="reminder-text"><%= rem.text %></span>
+                <form method="POST" action="/api/reminders/<%= rem.id %>/delete" class="inline-form reminder-delete-form">
+                  <button type="submit" class="btn-danger">DEL</button>
+                </form>
+              </li>
+            <% }); %>
+          </ul>
+        <% } %>
+        <form method="POST" action="/api/reminders" id="reminder-form" style="display:flex; flex-direction:column; gap:4px; margin-top:8px;">
+          <input type="date" name="date" class="input-inset" required>
+          <div style="display:flex; gap:4px;">
+            <input type="text" name="text" placeholder="<%= t.reminders.textPlaceholder %>" class="input-inset" style="flex:1; min-width:0;" required>
+            <button type="submit" class="btn-outset" style="flex-shrink:0;"><%= t.reminders.add %></button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ENGINEERING_CONCEPT.SYS -->
+    <div class="container-flat">
+      <div class="window-header">MÜHENDİSLİK_TANIMI</div>
+      <div class="panel-inset" style="padding:8px; min-height:60px; background:#fff; color:#000;">
+        <div id="eng-concept-content" style="font-size:11px;">
+          > EXEC DAILY_CONCEPT...<br>> CONNECTING TO AI CORE...
+        </div>
+      </div>
+    </div>
+
+    <!-- SCANNER.SYS / PAPER_TLDR.BAT (Moved from Center, vertically expanded) -->
+    <div class="container-flat">
+      <div class="window-header"><%= t.programs.scanner %> / <%= t.programs.paperTldr %></div>
+      <div class="panel-inset" style="padding: 8px; display: flex; flex-direction: column; gap: 8px;">
+        <form id="scanner-form" style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
+            <label>
+              <input type="file" id="scanner-file" accept=".pdf,.txt,.jpg,.jpeg,.png" style="display:none;" required>
+              <span class="btn-outset" style="font-size:10px;">UPLOAD</span>
+            </label>
+            <span id="scanner-file-name" style="font-size: 10px; flex:1; overflow:hidden; white-space:nowrap;">No file</span>
+          </div>
+          <div style="display: flex; gap: 4px;">
+            <select id="scanner-action" class="input-inset" style="flex:1; font-size:10px; padding:0;">
+              <option value="ocr">OCR</option>
+              <option value="tldr">TLDR</option>
+            </select>
+            <button type="submit" class="btn-outset" id="scanner-btn" style="font-size:10px;"><%= t.programs.run %></button>
+          </div>
+        </form>
+        <textarea id="scanner-result" class="input-inset" rows="20" style="background:#000; color:#0f0; font-family: monospace; font-size:10px; min-height: 250px;" readonly></textarea>
+      </div>
+    </div>
+
+    <!-- ISS TRACKER -->
+    <div class="container-flat">
+      <div class="window-header">ISS_TRACKER</div>
+      <div class="terminal-screen" style="text-align:center;">
+        <pre style="font-family:monospace; color:#0f0; font-size: 8px; line-height: 1; margin:0; text-align:left;" id="iss-ascii">
+     .  *  .  . *       *    .        
+   *   .    *       .   *    .    *   
+  .    *      ___/|_     *       .    
+    *      .-/      \-.   *   .      
+   .   *   \_\______/_/      *    .   
+      .      |      |     .           
+        *    '------'   *       *     
+        </pre>
+        <div id="iss-data" style="margin-top:8px; font-size:11px;">
+          > LOCATING STATION...
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- CENTER COLUMN -->
+  <main class="col-center">
+
+    <!-- NETWORK_FEED::LATEST_UPDATES -->
+    <div class="container-flat">
+      <div class="window-header"><%= t.news.title %></div>
+      
+      <!-- ARTICLE READER CONTAINER -->
+      <div id="article-reader" style="display:none; margin:8px; background:#fff; color:#000; padding:10px; border:2px solid; border-color:#808080 #fff #fff #808080;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #ccc; padding-bottom:5px;">
+          <strong id="reader-title" style="font-size:14px;"><%= t.reader.loading %></strong>
+          <button class="btn-outset" onclick="document.getElementById('article-reader').style.display='none'"><%= t.reader.close %></button>
+        </div>
+        <div id="reader-content" style="font-size:13px; line-height:1.5; max-height:400px; overflow-y:auto; overflow-wrap:break-word;">
+          <!-- Content loads here -->
+        </div>
+      </div>
+
+      <div class="panel-inset scroll-panel" style="padding:8px;max-height:650px;">
+        <% if (!news || news.length === 0) { %>
+          <p class="empty-msg"><%= t.news.noNews %></p>
+        <% } else { %>
+          <div class="news-list" id="main-news-list">
+            <% news.forEach(function(item, idx) { %>
+              <article class="news-item" style="<%= idx >= 20 ? 'display:none;' : '' %>">
+                <div class="news-title">
+                  <a href="#" class="read-article-btn" data-url="<%= item.link %>" title="<%= item.title %>"><%= item.title %></a>
+                  <button class="btn-outset tldr-btn" style="font-size:9px; padding:0 4px;" data-text="<%= Buffer.from((item.snippet || item.title)).toString('base64') %>"><%= lang === 'tr' ? '[Özetle]' : '[Summarize]' %></button>
+                </div>
+                <div class="news-tldr-content" style="display:none; font-size:11px; color:#ff0; background:#222; padding:4px; margin-top:4px; border-left:2px solid #ff0;"></div>
+                <div class="news-meta">
+                  Source: <%= item.source %> | <%= new Date(item.pubDate).toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US') %>
+                </div>
+              </article>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+      <% if (news && news.length > 0) { %>
+        <div class="news-footer">
+          <span><%= t.news.showing %> <%= Math.min(20, news.length) %> of <%= news.length %> items</span>
+          <% if (news.length > 20) { %>
+            <button class="btn-outset" id="btn-more-news"><%= t.news.moreUpdates %></button>
+          <% } %>
+        </div>
+        <script>
+          const btnMoreNews = document.getElementById('btn-more-news');
+          if (btnMoreNews) {
+            btnMoreNews.addEventListener('click', function() {
+              document.querySelectorAll('#main-news-list .news-item').forEach(el => el.style.display = 'block');
+              this.style.display = 'none';
+              this.previousElementSibling.textContent = "<%= t.news.showing %> <%= news.length %> of <%= news.length %> items";
+            });
+          }
+        </script>
+      <% } %>
+    </div>
+
+    <!-- BOOKMARKS.INI -->
+    <div class="container-flat">
+      <div class="window-header"><%= t.bookmarks.title %></div>
+      <div class="panel-inset scroll-panel" style="padding:8px; max-height:150px;">
+        <form method="POST" action="/api/bookmarks" class="bookmark-form" id="bookmark-form">
+          <input type="text" name="title" placeholder="<%= t.bookmarks.namePlaceholder %>" class="input-inset">
+          <input type="url" name="url" placeholder="<%= t.bookmarks.urlPlaceholder %>" class="input-inset" required>
+          <button type="submit" class="btn-outset"><%= t.bookmarks.add %></button>
+        </form>
+        <% if (!bookmarks || bookmarks.length === 0) { %>
+          <p class="empty-msg" id="bookmarks-empty"><%= t.bookmarks.empty %></p>
+        <% } %>
+        <ul class="bookmark-list" id="bookmark-list">
+          <% if (bookmarks) { bookmarks.forEach(function(bm) { %>
+            <li class="bookmark-item" data-id="<%= bm.id %>">
+              <a href="<%= bm.url %>" target="_blank" rel="noopener"><%= bm.title %></a>
+              <form method="POST" action="/api/bookmarks/<%= bm.id %>/delete" class="inline-form bm-delete-form">
+                <button type="submit" class="btn-danger"><%= t.bookmarks.delete %></button>
+              </form>
+            </li>
+          <% }); } %>
+        </ul>
+      </div>
+    </div>
+
+    <!-- RECENT_MEDIA::TRACKER -->
+    <div class="container-flat">
+      <div class="window-header"><%= t.recentMedia.title %></div>
+      <div class="panel-inset" style="padding:8px;">
+        <% if (!recentVideos || recentVideos.length === 0) { %>
+          <p class="empty-msg"><%= t.videos.noVideos %></p>
+        <% } else { %>
+          <% recentVideos.forEach(function(video) { %>
+            <div class="recent-video-item">
+              <% if (settings.noImages !== 'true') { %>
+                <img src="<%= video.thumbnail %>" alt="" class="recent-video-thumb" loading="lazy">
+              <% } %>
+              <div class="recent-video-info">
+                <div class="recent-video-title"><a href="<%= video.link %>" target="_blank" rel="noopener"><%= video.title %></a></div>
+                <div class="recent-video-channel"><%= video.channelName %> | <%= new Date(video.published).toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US') %></div>
+              </div>
+            </div>
+          <% }); %>
+          <div class="recent-media-footer">
+            <a href="/videos" class="btn-outset"><%= t.recentMedia.viewAll %></a>
+          </div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- PAINT.EXE -->
+    <div class="container-flat">
+      <div class="window-header"><%= t.programs.paint %> <span style="font-size:10px; color:#c0c0c0;">(ONLY IMAGES)</span></div>
+      <div class="panel-inset" style="padding: 8px; display: flex; flex-direction: column; gap: 8px;">
+        <form id="paint-form" style="display: flex; gap: 4px;">
+          <input type="text" id="paint-prompt" class="input-inset" style="flex: 1;" placeholder="<%= t.programs.paintPrompt %>" required>
+          <button type="submit" class="btn-outset" id="paint-btn"><%= t.programs.run %></button>
+        </form>
+        <div id="paint-result" style="margin-top: 4px; min-height: 100px; background: #000; border: 2px inset #fff; display: flex; align-items: center; justify-content: center; color: #0f0; font-size:10px;">
+          [ NO_IMAGE ]
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTACT / LOCATION MAP (Moved from Right to Center) -->
+    <div class="container-flat">
+      <div class="window-header">LOKASYON_HARİTASI</div>
+      <div class="panel-inset" style="padding: 4px; background: #000;">
+        <div id="contact-map" style="width: 100%; height: 250px; background: #222; border: 2px inset #fff;">
+          <!-- Leaflet map will render here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- CALC.EXE (Horizontal Layout) -->
+    <div class="container-flat">
+      <div class="window-header"><%= t.calculator.title %></div>
+      <div class="panel-inset" style="padding: 8px;">
+        <div id="calc-display" style="background: #e0e0e0; border: 2px inset #fff; padding: 4px 8px; text-align: right; margin-bottom: 8px; font-family: monospace; font-size: 16px; min-height: 24px;">0</div>
+        
+        <div style="display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px;">
+          <button class="btn-outset calc-btn" data-val="sin(">sin</button>
+          <button class="btn-outset calc-btn" data-val="cos(">cos</button>
+          <button class="btn-outset calc-btn" data-val="tan(">tan</button>
+          <button class="btn-outset calc-btn" data-val="log(">log</button>
+          
+          <button class="btn-outset calc-btn" data-val="7">7</button>
+          <button class="btn-outset calc-btn" data-val="8">8</button>
+          <button class="btn-outset calc-btn" data-val="9">9</button>
+          <button class="btn-outset calc-btn calc-op" data-val="/">/</button>
+          
+          <button class="btn-outset calc-btn" data-val="sqrt(">√</button>
+          <button class="btn-outset calc-btn" data-val="^">^</button>
+          <button class="btn-outset calc-btn" data-val="(">(</button>
+          <button class="btn-outset calc-btn" data-val=")">)</button>
+
+          <button class="btn-outset calc-btn" data-val="4">4</button>
+          <button class="btn-outset calc-btn" data-val="5">5</button>
+          <button class="btn-outset calc-btn" data-val="6">6</button>
+          <button class="btn-outset calc-btn calc-op" data-val="*">*</button>
+
+          <button class="btn-outset mt-sm" style="grid-column: span 4;" id="calc-clear">CLEAR</button>
+
+          <button class="btn-outset calc-btn" data-val="1">1</button>
+          <button class="btn-outset calc-btn" data-val="2">2</button>
+          <button class="btn-outset calc-btn" data-val="3">3</button>
+          <button class="btn-outset calc-btn calc-op" data-val="-">-</button>
+
+          <div style="grid-column: span 4;"></div>
+
+          <button class="btn-outset calc-btn" data-val="0">0</button>
+          <button class="btn-outset calc-btn" data-val=".">.</button>
+          <button class="btn-outset calc-btn calc-op" id="calc-equals">=</button>
+          <button class="btn-outset calc-btn calc-op" data-val="+">+</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- RIGHT COLUMN -->
+  <aside class="col-right">
+
+    <!-- DAILY_REC.SYS -->
+    <div class="container-flat">
+      <div class="window-header"><%= t.dailyRec.title %></div>
+      <div class="terminal-screen" style="text-align: center;">
+        <div style="display:flex; justify-content:center; gap:8px;">
+          <pre style="font-family:monospace; color:#0f0; font-size: 6px; line-height: 1.1; margin:0; text-align:left;">
+ _________________________________
+|  _____________________________  |
+| /                             \ |
+| |      [ O ]       [ O ]      | |
+| |                             | |
+| |          _______            | |
+| \_____________________________/ |
+|_________________________________|
+          </pre>
+          <pre style="font-family:monospace; color:#0f0; font-size: 6px; line-height: 1.1; margin:0; text-align:left;">
+ \\\\ \\\\\\ \\\\\\ \\\\\\ \\
+   \\\\\\\\\\\\\\\\\\\\\\\\\\
+  |                            |
+  |  PROD.   :                 |
+  |  SCENE   :      TAKE   :   |
+  |  DATE    :                 |
+  |  DIRECTOR:                 |
+  |____________________________|
+          </pre>
+        </div>
+        <div style="margin-top:8px; text-align:left;">
+          <span style="color:#0ff;"><%= t.dailyRec.movie %>:</span> 
+          <strong>Stalker (1979)</strong> - Andrei Tarkovsky<br>
+          <span style="color:#888;">(A guide leads two men through an area known as the Zone to find a room that grants wishes.)</span>
+        </div>
+        <div style="margin-top:8px; text-align:left;">
+          <span style="color:#0ff;"><%= t.dailyRec.album %>:</span> 
+          <strong>Unknown Pleasures</strong> - Joy Division<br>
+          <span style="color:#888;">(The debut studio album by English rock band Joy Division, released in 1979.)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMAGE_FEED (Visuals) -->
+    <div class="container-flat">
+      <div class="window-header">GÖRSEL_AKIŞI</div>
+      <div class="panel-inset" style="padding: 4px; background: #000;">
+        <div class="image-feed-container" id="random-image-container">
+          <div class="image-feed-overlay" id="random-image-caption">FETCHING IMAGE...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRANSLATOR.EXE -->
+    <div class="container-flat">
+      <div class="window-header"><%= t.translate.title %></div>
+      <div class="panel-inset" style="padding: 8px;">
+        <form id="translate-form" style="display: flex; flex-direction: column; gap: 8px;">
+          <textarea id="trans-source" class="input-inset" rows="3" placeholder="<%= t.translate.source %>..." required></textarea>
+          <div style="display: flex; gap: 4px;">
+            <select id="trans-source-lang" class="input-inset" style="flex:1; min-width:0;">
+              <option value="Auto">Oto</option>
+              <option value="Turkish">TR</option>
+              <option value="English">EN</option>
+              <option value="German">DE</option>
+            </select>
+            <span style="align-self:center;">&rarr;</span>
+            <select id="trans-target-lang" class="input-inset" style="flex:1; min-width:0;">
+              <option value="Turkish" <%= lang === 'tr' ? 'selected' : '' %>>TR</option>
+              <option value="English" <%= lang === 'en' ? 'selected' : '' %>>EN</option>
+              <option value="German">DE</option>
+            </select>
+            <button type="submit" class="btn-outset" id="trans-btn" style="flex-shrink:0;">TRNS</button>
+          </div>
+          <textarea id="trans-result" class="input-inset" rows="3" readonly style="background:#e0e0e0;"></textarea>
+        </form>
+      </div>
+    </div>
+
+    <!-- SCRATCHPAD.TXT (Notes) -->
+    <div class="container-flat">
+      <div class="window-header"><%= t.notes.title %></div>
+      <form method="POST" action="/api/notes" id="note-form">
+        <textarea name="text" class="input-inset" rows="4" style="height:100px;" placeholder="<%= t.notes.placeholder %>"><% if (notes && notes.length > 0) { %><%= notes[0].text %><% } %></textarea>
+        <div style="display:flex;justify-content:flex-end;gap:4px;margin-top:4px;">
+          <button type="button" class="btn-outset" id="scratchpad-clear"><%= t.notes.clear %></button>
+          <button type="submit" class="btn-outset"><%= t.notes.save %></button>
+        </div>
+      </form>
+    </div>
+
+    <!-- TASK_QUEUE.BAT (Todo) -->
+    <div class="container-flat">
+      <div class="window-header"><%= t.todo.title %></div>
+      <div class="panel-inset scroll-panel" style="padding:8px;max-height:150px;">
+        <% if (!todos || todos.length === 0) { %>
+          <p class="empty-msg" id="todo-empty"><%= t.todo.empty %></p>
+        <% } %>
+        <ul class="task-list" id="todo-list">
+          <% if (todos) { todos.forEach(function(todo) { %>
+            <li class="task-item<%= todo.done ? ' done' : '' %>" data-id="<%= todo.id %>">
+              <input type="checkbox" class="todo-check" <%= todo.done ? 'checked' : '' %>>
+              <span class="task-text"><%= todo.text %></span>
+              <form method="POST" action="/api/todos/<%= todo.id %>/delete" class="inline-form todo-delete-form">
+                <button type="submit" class="btn-danger">DEL</button>
+              </form>
+            </li>
+          <% }); } %>
+        </ul>
+      </div>
+      <form method="POST" action="/api/todos" class="task-form" id="todo-form" style="display:flex; gap:4px; margin-top:8px;">
+        <input type="text" name="text" placeholder="<%= t.todo.placeholder %>" class="input-inset" style="flex:1; min-width:0;" required>
+        <button type="submit" class="btn-outset" style="flex-shrink:0;"><%= t.todo.add %></button>
+      </form>
+    </div>
+
+    <!-- WIKIPEDIA_SEARCH.EXE -->
+    <div class="container-flat">
+      <div class="window-header"><%= t.wiki.title %></div>
+      <div class="panel-inset" style="padding: 8px;">
+        <div style="display: flex; gap: 4px;">
+          <input type="text" id="aramaKutusu" placeholder="<%= t.wiki.placeholder %>" class="input-inset" style="flex:1;">
+          <button class="btn-outset" onclick="wikiGetir()"><%= t.wiki.search %></button>
+        </div>
+        <div id="sonucAlani" style="margin-top: 8px; padding: 8px; border: 1px dashed #d0d0d0; display:none; background:#fff; color:#000;">
+            <h3 id="wikiBaslik" style="font-family:'Space Mono', monospace; font-size:14px; margin-bottom:4px; margin-top:0;"></h3>
+            <img id="wikiGorsel" style="max-width: 100px; float:right; margin-left:8px; display: none;">
+            <p id="wikiMetin" style="font-size:12px; margin:0;"></p>
+            <div style="clear:both;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RSS_FEED.EXE / SYSTEM RESOURCES (Moved up where Map was) -->
+    <div class="container-flat">
+      <div class="window-header"><%= t.sysResources.title %></div>
+      <div class="terminal-screen" id="sys-resources">
+        <% if (sysInfo) { %>
+          <div class="sys-info-line"><%= t.weather.feelsLike %>: <%= weather.feelsLike %>°C</div>
+          <div class="sys-info-line"><%= t.weather.humidity %>: <%= weather.humidity %>%</div>
+          <div class="sys-info-line"><%= t.weather.wind %>: <%= weather.wind %> km/h</div>
+          
+          <% if (weather.forecast && weather.forecast.length > 0) { %>
+            <div style="margin-top: 8px; border-top: 1px dashed #808080; padding-top: 4px;">
+              <div class="forecast-list" style="margin-top:8px;">
+                <% weather.forecast.forEach(f => { %>
+                  <div style="font-family:'JetBrains Mono', monospace; font-size:11px; display:flex; justify-content:space-between; border-bottom:1px dashed #555; padding:2px 0;">
+                    <span><%= f.date %></span>
+                    <div style="text-align:right;">
+                      <div><%= f.maxTemp %>°C / <%= f.minTemp %>°C</div>
+                      <div style="color:#666; font-size:10px;">Nem %<%= f.humidity %> | Yğmr %<%= f.rainChance %> (<%= f.rainHour %>)</div>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+            </div>
+          <% } %>
+          <div class="sys-info-line"><%= t.sysResources.nodeVersion %>: <%= sysInfo.nodeVersion %></div>
+          <div class="sys-info-line"><%= t.sysResources.platform %>: <%= sysInfo.platform %></div>
+          <div class="sys-info-line"><%= t.sysResources.uptime %>: <span id="sys-uptime"><%= String(sysInfo.uptimeHours).padStart(2,'0') %>:<%= String(sysInfo.uptimeMinutes).padStart(2,'0') %>:<%= String(sysInfo.uptimeSeconds).padStart(2,'0') %></span></div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- WORLD CLOCKS -->
+    <div class="container-flat">
+      <div class="window-header">DÜNYA_SAATLERİ.SYS</div>
+      <div class="terminal-screen" id="world-clocks" style="font-size:11px;">
+        > SYNCING TIME...
+      </div>
+    </div>
+
+    <!-- EARTHQUAKES -->
+    <div class="container-flat">
+      <div class="window-header">SİSMİK_VERİ (USGS)</div>
+      <div class="panel-inset scroll-panel" id="earthquakes-list" style="padding:4px; max-height:150px; background:#000; color:#0f0; font-family:monospace; font-size:10px;">
+        > FETCHING SEISMIC DATA...
+      </div>
+    </div>
+
+
+
+  </aside>
+</div>
+
+<%- include('partials/footer') %>

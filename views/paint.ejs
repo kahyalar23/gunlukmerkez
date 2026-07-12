@@ -1,0 +1,169 @@
+<%- include('partials/header') %>
+
+<div style="max-width: 1200px; margin: 8px auto; padding: 0 8px;">
+  
+  <div class="container-flat" style="margin-bottom: 8px;">
+    <div class="window-header">PAINT.EXE - Infinite Canvas</div>
+    <div class="panel-inset" style="padding: 6px; display: flex; gap: 8px; align-items: center;">
+      <button class="btn-outset" id="tool-pen" style="background:#000080; color:#fff;">Kalem</button>
+      <button class="btn-outset" id="tool-eraser">Silgi</button>
+      <button class="btn-outset" id="btn-clear" style="margin-left: auto;">Temizle</button>
+      <button class="btn-outset" id="btn-save" style="color:#000080;">Kaydet</button>
+      <span id="save-status" style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#008000; display:none;">Kaydedildi!</span>
+    </div>
+  </div>
+
+  <div class="container-flat" style="padding: 0; overflow-x: auto; background:#c0c0c0;">
+    <div class="panel-inset" style="padding: 0; border: none; overflow: hidden; position: relative;">
+      <!-- Canvas with a very large height for "infinite" drawing -->
+      <canvas id="paint-canvas" width="1200" height="4000" style="display: block; touch-action: none; background: transparent; cursor: crosshair;"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  const canvas = document.getElementById('paint-canvas');
+  const ctx = canvas.getContext('2d');
+  
+  let isDrawing = false;
+  let currentTool = 'pen';
+  let lastX = 0;
+  let lastY = 0;
+
+  // Adapt to dark mode
+  function getStrokeColor() {
+    if (currentTool === 'eraser') {
+      return document.body.classList.contains('theme-dark') ? '#000' : '#fff';
+    }
+    return document.body.classList.contains('theme-dark') ? '#ffffff' : '#000000';
+  }
+
+  function setInitialBackground() {
+    // Fill with default color so saving to JPG/Base64 preserves background
+    ctx.fillStyle = document.body.classList.contains('theme-dark') ? '#000' : '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+  
+  setInitialBackground();
+
+  // Load existing canvas
+  fetch('/api/paint-canvas').then(r => r.json()).then(data => {
+    if (data.dataUrl) {
+      const img = new Image();
+      img.onload = function() {
+        ctx.drawImage(img, 0, 0);
+      };
+      img.src = data.dataUrl;
+    }
+  }).catch(e => console.error('Failed to load canvas:', e));
+
+  function draw(e) {
+    if (!isDrawing) return;
+    e.preventDefault();
+    
+    let clientX, clientY;
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+
+    ctx.beginPath();
+    ctx.moveTo(lastX, lastY);
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = getStrokeColor();
+    ctx.lineWidth = currentTool === 'eraser' ? 20 : 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    lastX = x;
+    lastY = y;
+  }
+
+  function startDraw(e) {
+    isDrawing = true;
+    let clientX, clientY;
+    if (e.touches && e.touches.length > 0) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    const rect = canvas.getBoundingClientRect();
+    lastX = clientX - rect.left;
+    lastY = clientY - rect.top;
+  }
+
+  function stopDraw() {
+    isDrawing = false;
+  }
+
+  canvas.addEventListener('mousedown', startDraw);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', stopDraw);
+  canvas.addEventListener('mouseout', stopDraw);
+
+  canvas.addEventListener('touchstart', startDraw, {passive: false});
+  canvas.addEventListener('touchmove', draw, {passive: false});
+  canvas.addEventListener('touchend', stopDraw);
+  canvas.addEventListener('touchcancel', stopDraw);
+
+  // Tools
+  document.getElementById('tool-pen').addEventListener('click', function(e) {
+    currentTool = 'pen';
+    this.style.background = '#000080';
+    this.style.color = '#fff';
+    document.getElementById('tool-eraser').style.background = '#c0c0c0';
+    document.getElementById('tool-eraser').style.color = '#000';
+  });
+
+  document.getElementById('tool-eraser').addEventListener('click', function(e) {
+    currentTool = 'eraser';
+    this.style.background = '#000080';
+    this.style.color = '#fff';
+    document.getElementById('tool-pen').style.background = '#c0c0c0';
+    document.getElementById('tool-pen').style.color = '#000';
+  });
+
+  document.getElementById('btn-clear').addEventListener('click', function() {
+    if (confirm("Tüm çizimi silmek istediğinize emin misiniz?")) {
+      setInitialBackground();
+    }
+  });
+
+  document.getElementById('btn-save').addEventListener('click', function() {
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8); // Use jpeg to save space vs png
+    document.getElementById('save-status').style.display = 'inline';
+    document.getElementById('save-status').textContent = 'Kaydediliyor...';
+    
+    fetch('/api/paint-canvas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dataUrl: dataUrl })
+    }).then(r => r.json()).then(data => {
+      document.getElementById('save-status').textContent = 'Kaydedildi!';
+      setTimeout(() => document.getElementById('save-status').style.display = 'none', 3000);
+    }).catch(e => {
+      document.getElementById('save-status').textContent = 'Hata!';
+      document.getElementById('save-status').style.color = '#ff0000';
+    });
+  });
+
+  // Observe theme changes to redraw background if empty, though drawing is opaque
+  // We don't want to auto-clear the drawing when theme changes, so we leave it as is.
+  // The user should manually clear or draw over it.
+
+})();
+</script>
+
+<%- include('partials/footer') %>

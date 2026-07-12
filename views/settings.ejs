@@ -1,0 +1,78 @@
+<%- include('partials/header') %>
+
+<div class="settings-container">
+  <h1 class="settings-title"><%= t.settings.title %></h1>
+
+  <!-- RSS Feeds -->
+  <div class="container-flat settings-block">
+    <div class="window-header"><%= t.settings.rssSection %></div>
+    <div class="panel-inset" style="padding:12px;">
+      <form method="POST" action="/settings/rss" class="settings-form">
+        <input type="url" name="url" placeholder="<%= t.settings.rssUrlPlaceholder %>" class="input-inset" required>
+        <input type="text" name="title" placeholder="<%= t.settings.rssNamePlaceholder %>" class="input-inset">
+        <button type="submit" class="btn-outset"><%= t.settings.addRss %></button>
+      </form>
+      <% if (feeds && feeds.length > 0) { %>
+        <ul class="settings-item-list">
+          <% feeds.forEach(function(feed) { %>
+            <li class="settings-item">
+              <span class="settings-item-name"><%= feed.title || feed.url %></span>
+              <span class="settings-item-url"><%= feed.title ? feed.url : '' %></span>
+              <form method="POST" action="/settings/rss/<%= feed.id %>/delete" class="inline-form">
+                <button type="submit" class="btn-danger"><%= t.settings.delete %></button>
+              </form>
+            </li>
+          <% }); %>
+        </ul>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- YouTube Channels -->
+  <div class="container-flat settings-block">
+    <div class="window-header"><%= t.settings.ytSection %></div>
+    <div class="panel-inset" style="padding:12px;">
+      <form method="POST" action="/settings/youtube" class="settings-form">
+        <input type="text" name="channel_id" placeholder="<%= t.settings.channelIdPlaceholder %>" class="input-inset" required>
+        <input type="text" name="name" placeholder="<%= t.settings.channelNamePlaceholder %>" class="input-inset">
+        <button type="submit" class="btn-outset"><%= t.settings.addChannel %></button>
+      </form>
+      <% if (channels && channels.length > 0) { %>
+        <ul class="settings-item-list">
+          <% channels.forEach(function(ch) { %>
+            <li class="settings-item">
+              <span class="settings-item-name"><%= ch.name || ch.channel_id %></span>
+              <span class="settings-item-url"><%= ch.name ? ch.channel_id : '' %></span>
+              <form method="POST" action="/settings/youtube/<%= ch.id %>/delete" class="inline-form">
+                <button type="submit" class="btn-danger"><%= t.settings.delete %></button>
+              </form>
+            </li>
+          <% }); %>
+        </ul>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Preferences -->
+  <div class="container-flat settings-block">
+    <div class="window-header"><%= t.settings.prefsSection %></div>
+    <div class="panel-inset" style="padding:12px;">
+      <form method="POST" action="/settings/preferences" class="prefs-form">
+        <div class="prefs-row">
+          <label class="prefs-label"><%= t.settings.noImages %></label>
+          <div class="prefs-check">
+            <input type="checkbox" name="noImages" <%= settings.noImages === 'true' ? 'checked' : '' %>>
+            <small><%= t.settings.noImagesDesc %></small>
+          </div>
+        </div>
+        <div class="prefs-row">
+          <label class="prefs-label"><%= t.settings.weatherCity %></label>
+          <input type="text" name="weatherCity" value="<%= settings.weatherCity || '' %>" class="input-inset w-full">
+        </div>
+        <button type="submit" class="btn-outset mt-sm"><%= t.settings.save %></button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

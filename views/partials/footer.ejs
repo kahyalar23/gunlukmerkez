@@ -1,0 +1,28 @@
+  <!-- Footer -->
+  <footer class="app-footer" style="position:relative;">
+    <div><%= t.footer.copyright %> | <%= t.common.systemOk %></div>
+    
+    <div style="display:flex; align-items:center; gap:16px;">
+      <div id="saved-chats-section" style="display:flex; align-items:center; gap:4px; font-size:10px;">
+        <span style="color:#0ff;">ESKİ SOHBETLER:</span>
+        <select id="chat-history-select" class="input-inset" style="height:18px; padding:0 4px; font-size:9px; width:120px;">
+          <option value="">-- Seç --</option>
+        </select>
+        <button id="btn-load-chat" class="btn-outset" style="font-size:9px;">YÜKLE</button>
+        <button id="btn-del-chat" class="btn-danger" style="font-size:9px; padding:0 4px;">SİL</button>
+        <button id="btn-save-chat" class="btn-outset" style="font-size:9px; margin-left:8px; color:#0f0;">BU SOHBETİ KAYDET</button>
+      </div>
+
+      <div class="footer-links">
+        <a href="#"><%= t.footer.help %></a>
+        <a href="#"><%= t.footer.logs %></a>
+        <a href="#"><%= t.footer.privacy %></a>
+      </div>
+    </div>
+  </footer>
+  
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="/script.js?v=6" defer></script>
+  <script src="/api_widgets.js?v=6" defer></script>
+</body>
+</html>

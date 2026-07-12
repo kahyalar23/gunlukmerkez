@@ -1,0 +1,96 @@
+<%- include('partials/header') %>
+
+<div class="videos-layout">
+  <div>
+    <!-- Header -->
+    <div class="video-header">
+      <div>
+        <h1><%= t.videos.title %></h1>
+        <% if (typeof channels !== 'undefined' && channels) { %>
+          <p class="video-header-subtitle"><%= t.videos.tracking %> <%= channels.length %> <%= t.videos.activeChannels %></p>
+        <% } %>
+      </div>
+      <div class="video-header-form">
+        <span><%= t.videos.addUrl %></span>
+        <form method="POST" action="/settings/youtube" style="display:flex;gap:4px;">
+          <input type="text" name="channel_id" placeholder="UC..." class="input-inset" style="width:200px;">
+          <button type="submit" class="btn-outset"><%= t.videos.execute %></button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="video-toolbar">
+      <a href="/videos" class="btn-outset"><%= t.videos.sync %></a>
+      <label><input type="checkbox" id="lite-mode-toggle" <%= settings.noImages === 'true' ? 'checked' : '' %>> <%= t.videos.liteMode %></label>
+    </div>
+
+    <!-- Video Table -->
+    <div class="container-flat">
+      <% if (!videos || videos.length === 0) { %>
+        <p class="empty-msg" style="padding:16px;"><%= t.videos.noVideos %></p>
+      <% } else { %>
+        <div class="video-list" style="display:flex; flex-direction:column; gap:8px;">
+          <% videos.forEach(function(video, i) { %>
+            <div class="video-card panel-inset" style="display:flex; gap:12px; align-items:center; padding:8px;">
+              <div class="video-thumb-container" style="flex-shrink:0;">
+                <% if (settings.noImages !== 'true') { %>
+                  <img src="<%= video.thumbnail %>" alt="thumb" style="width:80px; height:45px; object-fit:cover; border:1px solid #444;">
+                <% } else { %>
+                  <div style="width:80px; height:45px; background:#222; border:1px solid #444; color:#666; font-size:9px; display:flex; align-items:center; justify-content:center;">[NO IMG]</div>
+                <% } %>
+              </div>
+              
+              <div class="video-info" style="flex-grow:1; min-width:0;">
+                <div style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:bold; font-size:14px; margin-bottom:4px;">
+                  <%= video.title %>
+                </div>
+                <div style="font-size:11px; color:#aaa;">
+                  <%= video.channelName %> | <%= new Date(video.published).toISOString().split('T')[0] %>
+                </div>
+                <div class="vid-tldr-content" style="display:none; font-size:11px; color:#ff0; background:#222; padding:4px; margin-top:4px; border-left:2px solid #ff0;"></div>
+              </div>
+              
+              <div class="video-actions" style="display:flex; gap:4px; flex-shrink:0;">
+                <a href="<%= video.link %>" target="_blank" rel="noopener" class="btn-outset" style="font-size:11px; text-decoration:none;"><%= t.videos.openYoutube %></a>
+                <a href="/api/videos/play/<%= video.videoId %>" class="btn-outset" style="font-size:11px; text-decoration:none;"><%= t.videos.openVlc %></a>
+                <button class="btn-outset vid-tldr-btn" style="font-size:11px;" data-title="<%= encodeURIComponent(video.title) %>" data-channel="<%= encodeURIComponent(video.channelName) %>">TL;DR</button>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+        <% if (lastUpdated && lastUpdated.videos) { %>
+          <p class="video-status"><%= t.videos.lastUpdated %>: <%= lastUpdated.videos.toLocaleTimeString(lang === 'tr' ? 'tr-TR' : 'en-US') %> | Status: OK</p>
+        <% } %>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Sub Manager Sidebar -->
+  <div>
+    <div class="container-flat">
+      <div class="window-header" style="display:flex;justify-content:space-between;">
+        <span><%= t.videos.subManager %></span>
+        <span>&#9776;</span>
+      </div>
+      <div class="panel-inset" style="padding:8px;">
+        <% if (typeof channels !== 'undefined' && channels && channels.length > 0) { %>
+          <ul class="sub-manager-list">
+            <% channels.forEach(function(ch) { %>
+              <li class="sub-manager-item">
+                <span><%= ch.name || ch.channel_id %></span>
+                <form method="POST" action="/settings/youtube/<%= ch.id %>/delete" class="inline-form">
+                  <button type="submit" class="btn-danger">DEL</button>
+                </form>
+              </li>
+            <% }); %>
+          </ul>
+        <% } else { %>
+          <p class="empty-msg">No channels.</p>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

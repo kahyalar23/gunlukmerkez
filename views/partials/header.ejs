@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="<%= t.siteName %> — Personal Dashboard">
+  <title><%= typeof pageTitle !== 'undefined' && pageTitle ? pageTitle + ' — ' : '' %><%= t.siteName %></title>
+  <link rel="stylesheet" href="/style.css?v=<%= Date.now() %>">
+  <!-- Leaflet CSS for Contact Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+</head>
+<body class="<%= settings.noImages === 'true' ? 'no-images' : '' %> <%= settings.theme === 'dark' ? 'theme-dark' : '' %>">
+  <!-- System Status Bar -->
+  <div class="sys-status-bar">
+    <div class="status-left">
+      <span><%= t.statusBar.sysId %> | <%= t.statusBar.usr %> | <%= t.statusBar.uptime %>: <span id="status-uptime">00:00:00</span></span>
+    </div>
+    <div class="status-right">
+      <span><%= t.statusBar.mem %>: <span id="status-mem">--</span>MB <%= t.statusBar.ok %></span>
+      <span><%= t.statusBar.port %>: <%= typeof sysInfo !== 'undefined' && sysInfo ? sysInfo.port : '3000' %></span>
+      <span id="status-datetime">--</span>
+    </div>
+  </div>
+
+  <!-- Combined Marquee Ticker -->
+  <div class="ticker-bar">
+    <marquee scrollamount="4" id="main-marquee">
+      <span id="fx-marquee">[FX TICKER] INITIALIZING...</span> 
+      <span style="margin: 0 40px; color:#555;">|</span>
+      <span id="history-marquee" style="color:#ffb000;">[HISTORY] LOADING ON THIS DAY...</span>
+    </marquee>
+  </div>
+
+  <!-- Navigation Bar -->
+  <nav class="app-nav">
+    <div style="display:flex;align-items:center;">
+      <a href="/" class="nav-brand"><%= t.siteName %> <span class="version"><%= t.siteVersion %></span></a>
+      <div class="nav-tabs">
+        <a href="/" class="<%= currentPath === '/' ? 'active' : '' %>"><%= t.nav.home %></a>
+        <a href="/chat" class="<%= currentPath === '/chat' ? 'active' : '' %>"><%= t.nav.chat %></a>
+        <a href="/videos" class="<%= currentPath === '/videos' ? 'active' : '' %>"><%= t.nav.videos %></a>
+        <a href="/radio" class="<%= currentPath === '/radio' ? 'active' : '' %>"><%= t.nav.radio %></a>
+        <a href="/paint" class="<%= currentPath === '/paint' ? 'active' : '' %>"><%= t.programs.paint || 'Paint' %></a>
+        <a href="/settings" class="<%= currentPath === '/settings' ? 'active' : '' %>"><%= t.nav.settings %></a>
+      </div>
+    </div>
+    <div class="nav-controls" style="display:flex; gap:4px;">
+      <form method="POST" action="/settings/theme" class="inline-form" id="theme-form">
+        <input type="hidden" name="theme" id="theme-input" value="<%= settings.theme === 'dark' ? 'light' : 'dark' %>">
+        <button type="submit" class="btn-outset" id="theme-btn"><%= settings.theme === 'dark' ? '☀️' : '🌙' %></button>
+      </form>
+      <form method="POST" action="/settings/language" class="inline-form">
+        <input type="hidden" name="lang" value="<%= lang === 'tr' ? 'en' : 'tr' %>">
+        <button type="submit" class="btn-outset"><%= lang === 'tr' ? '[EN]' : '[TR]' %></button>
+      </form>
+    </div>
+  </nav>
+
+  <!-- Sub Header: Quote & Weather -->
+  <div class="sub-header">
+    <div id="quote-box" style="display:flex; flex-direction:column;">
+      <span id="quote-text">> INITIALIZING QUOTE PROTOCOL...</span>
+      <span id="quote-author" style="font-size:9px; color:#888;"></span>
+    </div>
+    <div id="mini-weather" style="white-space:nowrap; margin-left:8px;">[M-WX] --</div>
+  </div>
+
+  <noscript><p class="noscript-msg"><%= t.common.noJsMessage %></p></noscript>
