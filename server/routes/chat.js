@@ -44,6 +44,11 @@ const PROVIDERS = {
     getApiKey: () => process.env.MINIMAX_API_KEY,
     baseURL: 'https://integrate.api.nvidia.com/v1',
     modelStr: 'minimaxai/minimax-m3'
+  },
+  'jina-deepsearch-v1': {
+    getApiKey: () => process.env.JINA_API_KEY,
+    baseURL: 'https://deepsearch.jina.ai/v1',
+    modelStr: 'jina-deepsearch-v1'
   }
 };
 
@@ -83,8 +88,16 @@ router.post('/api/chat', async (req, res) => {
         contents
       });
       return res.json({ reply: response.text || 'No response generated.' });
-    } 
-    else {
+    } else if (selectedModel === 'jina-search') {
+      const apiKey = process.env.JINA_API_KEY;
+      const headers = { 'Accept': 'text/plain' };
+      if (apiKey) headers['Authorization'] = 'Bearer ' + apiKey;
+      
+      const response = await fetch('https://s.jina.ai/' + encodeURIComponent(message.trim()), { headers });
+      if (!response.ok) return res.status(500).json({ error: 'Jina Search API failed' });
+      const text = await response.text();
+      return res.json({ reply: text });
+    } else {
       const provider = PROVIDERS[selectedModel];
       const client = getOpenAIClient(selectedModel);
       if (!client) return res.status(503).json({ error: `${selectedModel} API key not configured` });
@@ -150,8 +163,22 @@ router.post('/api/chat/upload', upload.single('file'), async (req, res) => {
         contents: [{ role: 'user', parts }]
       });
       return res.json({ reply: response.text });
-    } 
-    else {
+    } else if (selectedModel === 'jina-search') {
+      const apiKey = process.env.JINA_API_KEY;
+      const headers = { 'Accept': 'text/plain' };
+      if (apiKey) headers['Authorization'] = 'Bearer ' + apiKey;
+      
+      let finalMessage = message.trim();
+      if (mimeType === 'application/pdf' || mimeType === 'text/plain') {
+        const textContent = mimeType === 'text/plain' ? fs.readFileSync(filePath, 'utf8') : extractedText;
+        finalMessage += `\n\n${textContent}`;
+      }
+      
+      const response = await fetch('https://s.jina.ai/' + encodeURIComponent(finalMessage), { headers });
+      if (!response.ok) return res.status(500).json({ error: 'Jina Search API failed' });
+      const text = await response.text();
+      return res.json({ reply: text });
+    } else {
       // Other APIs (Deepseek, GLM, Minimax) generally do not have robust multimodal upload in standard chat format
       // We will extract text and pass it if it's text/pdf. 
       const provider = PROVIDERS[selectedModel];

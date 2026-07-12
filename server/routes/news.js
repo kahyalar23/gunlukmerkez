@@ -101,15 +101,18 @@ router.post('/api/read-article', async (req, res) => {
     res.json({ title: article.title, content: article.textContent, htmlContent: article.content });
   } catch (error) {
     console.error('Readability Error for', url, ':', error.message);
-    console.log('Attempting Jina AI fallback...');
+    console.log(`Using Jina AI fallback for ${url}`);
     
     try {
-      const jinaResponse = await fetch('https://r.jina.ai/' + url, {
-        headers: {
-          'Accept': 'text/plain',
-          'X-Return-Format': 'markdown'
-        }
-      });
+      const jinaHeaders = {
+        'Accept': 'text/plain',
+        'X-Return-Format': 'markdown'
+      };
+      if (process.env.JINA_API_KEY) {
+        jinaHeaders['Authorization'] = 'Bearer ' + process.env.JINA_API_KEY;
+      }
+      
+      const jinaResponse = await fetch('https://r.jina.ai/' + url, { headers: jinaHeaders });
       
       if (!jinaResponse.ok) throw new Error('Jina fetch failed');
       const jinaText = await jinaResponse.text();

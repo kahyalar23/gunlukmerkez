@@ -3,6 +3,8 @@ const router = express.Router();
 const youtubedl = require('youtube-dl-exec');
 const cache = require('../cache');
 
+const { Readable } = require('stream');
+
 // Videos page
 router.get('/videos', (req, res) => {
   const videos = cache.getVideos();
@@ -32,8 +34,8 @@ router.get('/api/videos/play/:videoId', (req, res) => {
   res.send(m3uContent);
 });
 
-// Proxy the video stream to bypass YouTube IP blocks
-router.get('/api/videos/stream/:videoId', (req, res) => {
+// Proxy the video stream to bypass YouTube IP blocks and support HTTP Range requests for VLC
+router.get('/api/videos/stream/:videoId', async (req, res) => {
   const videoId = req.params.videoId;
 
   if (!videoId || !/^[a-zA-Z0-9_-]{1,20}$/.test(videoId)) {
@@ -43,27 +45,40 @@ router.get('/api/videos/stream/:videoId', (req, res) => {
   const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
   try {
-    const subprocess = youtubedl.exec(youtubeUrl, {
-      o: '-', // output to stdout
-      f: 'best' // best quality
+    // 1. Get the direct streaming URL
+    const output = await youtubedl(youtubeUrl, {
+      getUrl: true,
+      format: 'best',
+      noWarnings: true
     });
-
-    res.setHeader('Content-Type', 'video/mp4');
     
-    // Pipe the stdout of yt-dlp directly to the response
-    subprocess.stdout.pipe(res);
+    const streamUrl = typeof output === 'string' ? output.trim() : null;
+    if (!streamUrl || !streamUrl.startsWith('http')) {
+      throw new Error('Could not extract direct stream URL');
+    }
 
-    // Handle process errors gracefully
-    subprocess.on('error', (err) => {
-      console.error('youtube-dl-exec process error:', err.message);
-      if (!res.headersSent) res.status(500).end();
+    // 2. Fetch from Google servers forwarding client's Range headers
+    const fetchHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+    };
+    if (req.headers.range) fetchHeaders['Range'] = req.headers.range;
+
+    const fetchRes = await fetch(streamUrl, { headers: fetchHeaders });
+    
+    // 3. Pipe the response back to VLC
+    res.status(fetchRes.status);
+    fetchRes.headers.forEach((val, key) => {
+      res.setHeader(key, val);
     });
 
-    // If client closes connection early, kill the yt-dlp process
-    req.on('close', () => {
-      subprocess.kill('SIGKILL');
-    });
-
+    if (fetchRes.body) {
+      // Use Web Streams -> Node Streams
+      const stream = Readable.fromWeb(fetchRes.body);
+      stream.pipe(res);
+      req.on('close', () => { stream.destroy(); });
+    } else {
+      res.end();
+    }
   } catch (err) {
     console.error('youtube-dl-exec stream error:', err.message);
     if (!res.headersSent) res.status(500).end();
