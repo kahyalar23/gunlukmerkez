@@ -41,9 +41,9 @@ if "%VLC_PATH%"=="" (
 :: Get direct URL using yt-dlp
 set "STREAM_URL="
 pushd "%~dp0"
-for /f "tokens=*" %%a in ('yt-dlp.exe -g -f "best" --no-warnings "https://www.youtube.com/watch?v=%VIDEO_ID%"') do (
-    set "STREAM_URL=%%a"
-)
+yt-dlp.exe -g -f "best" --no-warnings "https://www.youtube.com/watch?v=%VIDEO_ID%" > "%TEMP%\vlc_stream.txt"
+set /p STREAM_URL=<"%TEMP%\vlc_stream.txt"
+del "%TEMP%\vlc_stream.txt" 2>nul
 popd
 
 if "%STREAM_URL%"=="" (
