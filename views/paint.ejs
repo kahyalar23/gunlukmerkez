@@ -3,20 +3,55 @@
 <div style="max-width: 1200px; margin: 8px auto; padding: 0 8px;">
   
   <div class="container-flat" style="margin-bottom: 8px;">
-    <div class="window-header">PAINT.EXE - Infinite Canvas</div>
-    <div class="panel-inset" style="padding: 6px; display: flex; gap: 8px; align-items: center;">
-      <button class="btn-outset" id="tool-pen" style="background:#000080; color:#fff;">Kalem</button>
-      <button class="btn-outset" id="tool-eraser">Silgi</button>
-      <button class="btn-outset" id="btn-clear" style="margin-left: auto;">Temizle</button>
-      <button class="btn-outset" id="btn-save" style="color:#000080;">Kaydet</button>
-      <span id="save-status" style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#008000; display:none;">Kaydedildi!</span>
+    <div class="window-header">PAINT.EXE - Advanced</div>
+    
+    <!-- TOOLBAR 1: TOOLS & ACTIONS -->
+    <div class="panel-inset" style="padding: 6px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background:#e0e0e0;">
+      <!-- Tools -->
+      <div style="display:flex; gap:4px; border-right: 2px solid #808080; padding-right: 8px;">
+        <button class="btn-outset tool-btn" data-tool="pen" title="Kalem">🖊️</button>
+        <button class="btn-outset tool-btn" data-tool="brush" title="Fırça">🖌️</button>
+        <button class="btn-outset tool-btn" data-tool="marker" title="Marker">🖍️</button>
+        <button class="btn-outset tool-btn" data-tool="eraser" title="Silgi">🧽</button>
+        <button class="btn-outset tool-btn" data-tool="lasso" title="Kement">🔗</button>
+      </div>
+      
+      <!-- Actions -->
+      <div style="display:flex; gap:4px; border-right: 2px solid #808080; padding-right: 8px;">
+        <button class="btn-outset action-btn" id="btn-undo" title="Geri Al">↩️</button>
+        <button class="btn-outset action-btn" id="btn-redo" title="İleri Al">↪️</button>
+      </div>
+
+      <div style="display:flex; gap:4px; border-right: 2px solid #808080; padding-right: 8px;">
+        <button class="btn-outset action-btn" id="btn-clear" title="Temizle">🗑️</button>
+        <button class="btn-outset action-btn" id="btn-save" title="Kaydet">💾</button>
+        <span id="save-status" style="font-family:'JetBrains Mono', monospace; font-size:12px; color:#008000; display:none;">✔</span>
+      </div>
+      
+      <!-- Thickness -->
+      <div style="display:flex; gap:4px; align-items: center;">
+        <button class="btn-outset action-btn" id="btn-thin" title="İncelt">➖</button>
+        <span id="thickness-display" style="font-family:monospace; font-size:12px; width:16px; text-align:center; color:#000;">5</span>
+        <button class="btn-outset action-btn" id="btn-thick" title="Kalınlaştır">➕</button>
+      </div>
+    </div>
+
+    <!-- TOOLBAR 2: COLORS -->
+    <div class="panel-inset" id="color-toolbar" style="padding: 6px; display: flex; gap: 8px; align-items: center; background:#e0e0e0; border-top: none;">
+      <span style="font-size:10px; font-weight:bold; color:#000;">Renk:</span>
+      <button class="btn-outset color-btn" data-color="#000000" style="color:#000000; font-size:14px; padding:0 4px;" title="Siyah">⚫</button>
+      <button class="btn-outset color-btn" data-color="#ff0000" style="color:#ff0000; font-size:14px; padding:0 4px;" title="Kırmızı">🔴</button>
+      <button class="btn-outset color-btn" data-color="#0000ff" style="color:#0000ff; font-size:14px; padding:0 4px;" title="Mavi">🔵</button>
+      <button class="btn-outset color-btn" data-color="#008000" style="color:#008000; font-size:14px; padding:0 4px;" title="Yeşil">🟢</button>
+      <button class="btn-outset color-btn" data-color="#ffd700" style="color:#ffd700; font-size:14px; padding:0 4px; background:#808080;" title="Sarı">🟡</button>
+      <button class="btn-outset color-btn" data-color="#800080" style="color:#800080; font-size:14px; padding:0 4px;" title="Mor">🟣</button>
     </div>
   </div>
 
   <div class="container-flat" style="padding: 0; overflow-x: auto; background:#c0c0c0;">
     <div class="panel-inset" style="padding: 0; border: none; overflow: hidden; position: relative;">
-      <!-- Canvas with a very large height for "infinite" drawing -->
       <canvas id="paint-canvas" width="1200" height="4000" style="display: block; touch-action: none; background: transparent; cursor: crosshair;"></canvas>
+      <canvas id="lasso-overlay" width="1200" height="4000" style="position: absolute; top: 0; left: 0; display: none; pointer-events: none; background: transparent;"></canvas>
     </div>
   </div>
 
@@ -26,138 +61,393 @@
 (function() {
   const canvas = document.getElementById('paint-canvas');
   const ctx = canvas.getContext('2d');
+  const overlayCanvas = document.getElementById('lasso-overlay');
+  const overlayCtx = overlayCanvas.getContext('2d');
   
   let isDrawing = false;
   let currentTool = 'pen';
+  let currentColor = '#000000';
+  let currentWidth = 5;
   let lastX = 0;
   let lastY = 0;
 
-  // Always draw with black ink, erase with white (CSS filter will invert this in dark mode)
-  function getStrokeColor() {
-    return currentTool === 'eraser' ? '#ffffff' : '#000000';
-  }
+  let undoStack = [];
+  let redoStack = [];
+
+  let lassoPath = [];
+  let isLassoSelecting = false;
+  let isLassoDragging = false;
+  let lassoOffscreenCanvas = null;
+  let lassoBounds = null;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let currentDragOffsetX = 0;
+  let currentDragOffsetY = 0;
 
   function setInitialBackground() {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
-  
-  setInitialBackground();
 
-  // Load existing canvas
+  function saveState() {
+    undoStack.push(canvas.toDataURL('image/jpeg', 0.9));
+    redoStack = [];
+    if(undoStack.length > 25) undoStack.shift(); // Limit history to prevent memory issues
+  }
+
+  function restoreState(dataUrl) {
+    const img = new Image();
+    img.onload = function() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+    };
+    img.src = dataUrl;
+  }
+
+  function undo() {
+    commitLasso();
+    if (undoStack.length > 1) {
+      redoStack.push(undoStack.pop());
+      restoreState(undoStack[undoStack.length - 1]);
+    }
+  }
+
+  function redo() {
+    commitLasso();
+    if (redoStack.length > 0) {
+      const state = redoStack.pop();
+      undoStack.push(state);
+      restoreState(state);
+    }
+  }
+
+  setInitialBackground();
+  
   fetch('/api/paint-canvas').then(r => r.json()).then(data => {
     if (data.dataUrl) {
       const img = new Image();
       img.onload = function() {
         ctx.drawImage(img, 0, 0);
+        saveState();
       };
       img.src = data.dataUrl;
+    } else {
+      saveState();
     }
-  }).catch(e => console.error('Failed to load canvas:', e));
+  }).catch(e => {
+    console.error('Failed to load canvas:', e);
+    saveState();
+  });
 
-  function draw(e) {
-    if (!isDrawing) return;
-    e.preventDefault();
+  function getStrokeColor() {
+    return currentTool === 'eraser' ? '#ffffff' : currentColor;
+  }
+
+  function applyBrushStyles() {
+    ctx.strokeStyle = getStrokeColor();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = 'transparent';
+    ctx.globalAlpha = 1.0;
+
+    if (currentTool === 'pen' || currentTool === 'eraser') {
+      ctx.lineWidth = currentTool === 'eraser' ? currentWidth * 4 : currentWidth;
+    } else if (currentTool === 'brush') {
+      ctx.lineWidth = currentWidth * 1.5;
+      ctx.shadowBlur = currentWidth;
+      ctx.shadowColor = getStrokeColor();
+    } else if (currentTool === 'marker') {
+      ctx.lineWidth = currentWidth * 2;
+      ctx.lineCap = 'butt';
+      ctx.globalAlpha = 0.4;
+    }
+  }
+
+  function commitLasso() {
+    if (!lassoOffscreenCanvas) return;
     
+    ctx.save();
+    ctx.globalAlpha = 1.0;
+    ctx.shadowBlur = 0;
+    ctx.drawImage(lassoOffscreenCanvas, lassoBounds.x + currentDragOffsetX, lassoBounds.y + currentDragOffsetY);
+    ctx.restore();
+    
+    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+    overlayCanvas.style.display = 'none';
+    
+    lassoOffscreenCanvas = null;
+    currentDragOffsetX = 0;
+    currentDragOffsetY = 0;
+    saveState();
+  }
+
+  function extractLassoContent() {
+    if (lassoPath.length < 3) {
+      overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+      overlayCanvas.style.display = 'none';
+      return;
+    }
+
+    let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
+    for (let p of lassoPath) {
+      if (p.x < minX) minX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y > maxY) maxY = p.y;
+    }
+    minX -= 2; minY -= 2; maxX += 2; maxY += 2;
+    const w = maxX - minX;
+    const h = maxY - minY;
+    
+    if (w <= 0 || h <= 0) return;
+
+    lassoOffscreenCanvas = document.createElement('canvas');
+    lassoOffscreenCanvas.width = w;
+    lassoOffscreenCanvas.height = h;
+    const octx = lassoOffscreenCanvas.getContext('2d');
+    
+    octx.save();
+    octx.beginPath();
+    octx.moveTo(lassoPath[0].x - minX, lassoPath[0].y - minY);
+    for (let i = 1; i < lassoPath.length; i++) {
+      octx.lineTo(lassoPath[i].x - minX, lassoPath[i].y - minY);
+    }
+    octx.closePath();
+    octx.clip();
+    octx.drawImage(canvas, -minX, -minY);
+    octx.restore();
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(lassoPath[0].x, lassoPath[0].y);
+    for (let i = 1; i < lassoPath.length; i++) {
+      ctx.lineTo(lassoPath[i].x, lassoPath[i].y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.restore();
+
+    lassoBounds = { x: minX, y: minY, w, h };
+    
+    overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+    overlayCtx.drawImage(lassoOffscreenCanvas, minX, minY);
+    
+    saveState(); 
+  }
+
+  function getCoords(e) {
     let clientX, clientY;
     if (e.touches && e.touches.length > 0) {
       clientX = e.touches[0].clientX;
       clientY = e.touches[0].clientY;
+    } else if (e.changedTouches && e.changedTouches.length > 0) {
+      clientX = e.changedTouches[0].clientX;
+      clientY = e.changedTouches[0].clientY;
     } else {
       clientX = e.clientX;
       clientY = e.clientY;
     }
-
     const rect = canvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top
+    };
+  }
+
+  function handleStart(e) {
+    const {x, y} = getCoords(e);
+
+    if (currentTool === 'lasso') {
+      if (lassoOffscreenCanvas) {
+        if (x >= lassoBounds.x + currentDragOffsetX && x <= lassoBounds.x + currentDragOffsetX + lassoBounds.w &&
+            y >= lassoBounds.y + currentDragOffsetY && y <= lassoBounds.y + currentDragOffsetY + lassoBounds.h) {
+          isLassoDragging = true;
+          dragStartX = x;
+          dragStartY = y;
+        } else {
+          commitLasso();
+          isLassoSelecting = true;
+          lassoPath = [{x, y}];
+          overlayCanvas.style.display = 'block';
+          overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+        }
+      } else {
+        isLassoSelecting = true;
+        lassoPath = [{x, y}];
+        overlayCanvas.style.display = 'block';
+        overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+      }
+      return;
+    }
+
+    commitLasso();
+    isDrawing = true;
+    lastX = x;
+    lastY = y;
+    
+    applyBrushStyles();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  }
+
+  function handleMove(e) {
+    const {x, y} = getCoords(e);
+
+    if (currentTool === 'lasso') {
+      if (isLassoSelecting) {
+        e.preventDefault();
+        lassoPath.push({x, y});
+        
+        overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+        overlayCtx.beginPath();
+        overlayCtx.moveTo(lassoPath[0].x, lassoPath[0].y);
+        for (let p of lassoPath) {
+          overlayCtx.lineTo(p.x, p.y);
+        }
+        overlayCtx.strokeStyle = '#000';
+        overlayCtx.lineWidth = 1;
+        overlayCtx.setLineDash([5, 5]);
+        overlayCtx.stroke();
+        
+      } else if (isLassoDragging) {
+        e.preventDefault();
+        const dx = x - dragStartX;
+        const dy = y - dragStartY;
+        currentDragOffsetX += dx;
+        currentDragOffsetY += dy;
+        dragStartX = x;
+        dragStartY = y;
+        
+        overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+        overlayCtx.drawImage(
+          lassoOffscreenCanvas, 
+          lassoBounds.x + currentDragOffsetX, 
+          lassoBounds.y + currentDragOffsetY
+        );
+      }
+      return;
+    }
+
+    if (!isDrawing) return;
+    e.preventDefault();
 
     ctx.beginPath();
     ctx.moveTo(lastX, lastY);
     ctx.lineTo(x, y);
-    ctx.strokeStyle = getStrokeColor();
-    ctx.lineWidth = currentTool === 'eraser' ? 20 : 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
     ctx.stroke();
 
     lastX = x;
     lastY = y;
   }
 
-  function startDraw(e) {
-    isDrawing = true;
-    let clientX, clientY;
-    if (e.touches && e.touches.length > 0) {
-      clientX = e.touches[0].clientX;
-      clientY = e.touches[0].clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
+  function handleEnd(e) {
+    if (currentTool === 'lasso') {
+      if (isLassoSelecting) {
+        isLassoSelecting = false;
+        extractLassoContent();
+      } else if (isLassoDragging) {
+        isLassoDragging = false;
+      }
+      return;
     }
-    const rect = canvas.getBoundingClientRect();
-    lastX = clientX - rect.left;
-    lastY = clientY - rect.top;
+
+    if (isDrawing) {
+      isDrawing = false;
+      saveState();
+    }
   }
 
-  function stopDraw() {
-    isDrawing = false;
-  }
+  canvas.addEventListener('mousedown', handleStart);
+  canvas.addEventListener('mousemove', handleMove);
+  canvas.addEventListener('mouseup', handleEnd);
+  canvas.addEventListener('mouseout', handleEnd);
 
-  canvas.addEventListener('mousedown', startDraw);
-  canvas.addEventListener('mousemove', draw);
-  canvas.addEventListener('mouseup', stopDraw);
-  canvas.addEventListener('mouseout', stopDraw);
+  canvas.addEventListener('touchstart', handleStart, {passive: false});
+  canvas.addEventListener('touchmove', handleMove, {passive: false});
+  canvas.addEventListener('touchend', handleEnd);
+  canvas.addEventListener('touchcancel', handleEnd);
 
-  canvas.addEventListener('touchstart', startDraw, {passive: false});
-  canvas.addEventListener('touchmove', draw, {passive: false});
-  canvas.addEventListener('touchend', stopDraw);
-  canvas.addEventListener('touchcancel', stopDraw);
-
-  // Tools
-  document.getElementById('tool-pen').addEventListener('click', function(e) {
-    currentTool = 'pen';
-    this.style.background = '#000080';
-    this.style.color = '#fff';
-    document.getElementById('tool-eraser').style.background = '#c0c0c0';
-    document.getElementById('tool-eraser').style.color = '#000';
+  const toolBtns = document.querySelectorAll('.tool-btn');
+  toolBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      commitLasso();
+      currentTool = this.getAttribute('data-tool');
+      toolBtns.forEach(b => {
+        b.style.background = 'transparent';
+      });
+      this.style.background = '#808080';
+      
+      const ct = document.getElementById('color-toolbar');
+      if (currentTool === 'eraser' || currentTool === 'lasso') {
+         ct.style.opacity = '0.3';
+         ct.style.pointerEvents = 'none';
+      } else {
+         ct.style.opacity = '1';
+         ct.style.pointerEvents = 'auto';
+      }
+    });
   });
 
-  document.getElementById('tool-eraser').addEventListener('click', function(e) {
-    currentTool = 'eraser';
-    this.style.background = '#000080';
-    this.style.color = '#fff';
-    document.getElementById('tool-pen').style.background = '#c0c0c0';
-    document.getElementById('tool-pen').style.color = '#000';
+  document.querySelector('.tool-btn[data-tool="pen"]').style.background = '#808080';
+
+  const colorBtns = document.querySelectorAll('.color-btn');
+  colorBtns.forEach(btn => {
+    btn.addEventListener('click', function() {
+      currentColor = this.getAttribute('data-color');
+      colorBtns.forEach(b => {
+        b.style.border = '2px outset #fff';
+        b.style.background = 'transparent';
+      });
+      this.style.border = '2px inset #fff';
+      this.style.background = '#808080';
+    });
   });
+  document.querySelector('.color-btn[data-color="#000000"]').style.background = '#808080';
+  document.querySelector('.color-btn[data-color="#000000"]').style.border = '2px inset #fff';
+
+  document.getElementById('btn-thin').addEventListener('click', () => {
+    if(currentWidth > 1) currentWidth--;
+    document.getElementById('thickness-display').textContent = currentWidth;
+  });
+  document.getElementById('btn-thick').addEventListener('click', () => {
+    if(currentWidth < 30) currentWidth++;
+    document.getElementById('thickness-display').textContent = currentWidth;
+  });
+
+  document.getElementById('btn-undo').addEventListener('click', undo);
+  document.getElementById('btn-redo').addEventListener('click', redo);
 
   document.getElementById('btn-clear').addEventListener('click', function() {
     if (confirm("Tüm çizimi silmek istediğinize emin misiniz?")) {
+      commitLasso();
       setInitialBackground();
+      saveState();
     }
   });
 
   document.getElementById('btn-save').addEventListener('click', function() {
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.8); // Use jpeg to save space vs png
-    document.getElementById('save-status').style.display = 'inline';
-    document.getElementById('save-status').textContent = 'Kaydediliyor...';
+    commitLasso();
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+    const status = document.getElementById('save-status');
+    status.style.display = 'inline';
+    status.textContent = 'Kaydediliyor...';
     
     fetch('/api/paint-canvas', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dataUrl: dataUrl })
     }).then(r => r.json()).then(data => {
-      document.getElementById('save-status').textContent = 'Kaydedildi!';
-      setTimeout(() => document.getElementById('save-status').style.display = 'none', 3000);
+      status.textContent = '✔ Kaydedildi!';
+      setTimeout(() => status.style.display = 'none', 3000);
     }).catch(e => {
-      document.getElementById('save-status').textContent = 'Hata!';
-      document.getElementById('save-status').style.color = '#ff0000';
+      status.textContent = 'Hata!';
+      status.style.color = '#ff0000';
     });
   });
-
-  // Observe theme changes to redraw background if empty, though drawing is opaque
-  // We don't want to auto-clear the drawing when theme changes, so we leave it as is.
-  // The user should manually clear or draw over it.
 
 })();
 </script>
