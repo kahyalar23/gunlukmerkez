@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const ytdl = require('@distube/ytdl-core');
+const youtubedl = require('youtube-dl-exec');
 const cache = require('../cache');
 
 // Videos page
@@ -27,20 +27,23 @@ router.get('/api/videos/play/:videoId', async (req, res) => {
   const youtubeUrl = `https://www.youtube.com/watch?v=${videoId}`;
 
   try {
-    const info = await ytdl.getInfo(youtubeUrl);
-    // Find the best format that has both video and audio, or fallback to highest video
-    const format = ytdl.chooseFormat(info.formats, { quality: 'highest' });
+    const output = await youtubedl(youtubeUrl, {
+      getUrl: true,
+      format: 'best',
+      noWarnings: true
+    });
     
-    if (!format || !format.url) {
-      throw new Error('Video stream url not found');
+    const streamUrl = output.trim();
+    if (!streamUrl || !streamUrl.startsWith('http')) {
+      throw new Error('Could not get stream URL');
     }
-    
-    const m3uContent = `#EXTM3U\n#EXTINF:-1,Video\n${format.url}\n`;
+
+    const m3uContent = `#EXTM3U\n#EXTINF:-1,Video\n${streamUrl}\n`;
     res.setHeader('Content-Type', 'audio/x-mpegurl');
     res.setHeader('Content-Disposition', `attachment; filename="${videoId}.m3u"`);
     res.send(m3uContent);
   } catch (err) {
-    console.error('ytdl-core failed, using direct YouTube URL fallback:', err.message);
+    console.error('youtube-dl-exec failed, using direct YouTube URL fallback:', err.message);
     const m3uContent = `#EXTM3U\n#EXTINF:-1,Video\n${youtubeUrl}\n`;
     res.setHeader('Content-Type', 'audio/x-mpegurl');
     res.setHeader('Content-Disposition', `attachment; filename="${videoId}.m3u"`);

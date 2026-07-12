@@ -85,6 +85,17 @@ router.post('/api/read-article', async (req, res) => {
     const article = reader.parse();
     
     if (!article) throw new Error('Failed to parse article');
+
+    // Detect Cloudflare / Bot Challenges that return 200 OK
+    const titleLower = article.title.toLowerCase();
+    if (titleLower.includes('just a moment') || 
+        titleLower.includes('attention required') || 
+        titleLower.includes('cloudflare') ||
+        titleLower.includes('client challenge') ||
+        titleLower.includes('robot') ||
+        titleLower.includes('security check')) {
+        throw new Error('Bot challenge detected (Cloudflare etc.)');
+    }
     
     res.json({ title: article.title, content: article.textContent, htmlContent: article.content });
   } catch (error) {
