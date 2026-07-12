@@ -22,6 +22,9 @@ const cache = require('./cache');
 
 const app = express();
 
+// Trust proxy for rate limiting behind Render/Vercel
+app.set('trust proxy', 1);
+
 // View engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, '..', 'views'));
