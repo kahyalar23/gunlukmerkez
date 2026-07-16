@@ -36,6 +36,36 @@ router.get('/', async (req, res) => {
     port: process.env.PORT || 3000
   };
 
+  const dailyMovies = [
+    { title: 'Stalker (1979)', director: 'Andrei Tarkovsky', desc: 'A guide leads two men through an area known as the Zone to find a room that grants wishes.' },
+    { title: 'Blade Runner (1982)', director: 'Ridley Scott', desc: 'A blade runner must pursue and terminate four replicants who stole a ship in space.' },
+    { title: '2001: A Space Odyssey (1968)', director: 'Stanley Kubrick', desc: 'After uncovering a mysterious artifact, a spacecraft is sent to Jupiter.' },
+    { title: 'The Matrix (1999)', director: 'Lana & Lilly Wachowski', desc: 'A computer hacker learns from mysterious rebels about the true nature of his reality.' },
+    { title: 'Ghost in the Shell (1995)', director: 'Mamoru Oshii', desc: 'A cyborg policewoman and her partner hunt a mysterious and powerful hacker.' },
+    { title: 'Ex Machina (2014)', director: 'Alex Garland', desc: 'A young programmer is selected to participate in a ground-breaking experiment in synthetic intelligence.' },
+    { title: 'Solaris (1972)', director: 'Andrei Tarkovsky', desc: 'A psychologist is sent to a station orbiting a distant planet in order to discover what has caused the crew to go insane.' },
+    { title: 'Arrival (2016)', director: 'Denis Villeneuve', desc: 'A linguist works with the military to communicate with alien lifeforms after twelve mysterious spacecraft appear.' },
+    { title: 'Her (2013)', director: 'Spike Jonze', desc: 'In a near future, a lonely writer develops an unlikely relationship with an operating system.' },
+    { title: 'Children of Men (2006)', director: 'Alfonso Cuarón', desc: 'In 2027, in a chaotic world in which women have somehow become infertile, a former activist agrees to help transport a miraculously pregnant woman.' }
+  ];
+
+  const dailyAlbums = [
+    { title: 'Unknown Pleasures', artist: 'Joy Division', desc: 'The debut studio album by English rock band Joy Division, released in 1979.' },
+    { title: 'Dark Side of the Moon', artist: 'Pink Floyd', desc: 'The eighth studio album by the English rock band Pink Floyd, released in 1973.' },
+    { title: 'Kid A', artist: 'Radiohead', desc: 'The fourth studio album by the English rock band Radiohead, released in 2000.' },
+    { title: 'Mezzanine', artist: 'Massive Attack', desc: 'The third studio album by English electronic music group Massive Attack, released in 1998.' },
+    { title: 'Discovery', artist: 'Daft Punk', desc: 'The second studio album by French electronic music duo Daft Punk, released in 2001.' },
+    { title: 'Homogenic', artist: 'Björk', desc: 'The third studio album by Icelandic musician Björk, released in 1997.' },
+    { title: 'Dummy', artist: 'Portishead', desc: 'The debut studio album by English electronic music band Portishead, released in 1994.' },
+    { title: 'Selected Ambient Works 85-92', artist: 'Aphex Twin', desc: 'The debut studio album by Aphex Twin, a defining work of ambient techno.' },
+    { title: 'Disintegration', artist: 'The Cure', desc: 'The eighth studio album by English rock band the Cure, released in 1989.' },
+    { title: 'In Rainbows', artist: 'Radiohead', desc: 'The seventh studio album by the English rock band Radiohead, released in 2007.' }
+  ];
+
+  const dayIndex = Math.floor(Date.now() / 86400000);
+  const dailyMovie = dailyMovies[dayIndex % dailyMovies.length];
+  const dailyAlbum = dailyAlbums[dayIndex % dailyAlbums.length];
+
   res.render('index', {
     pageTitle: '',
     news,
@@ -46,7 +76,9 @@ router.get('/', async (req, res) => {
     weather,
     lastUpdated,
     recentVideos,
-    sysInfo
+    sysInfo,
+    dailyMovie,
+    dailyAlbum
   });
 });
 
